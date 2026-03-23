@@ -32,7 +32,8 @@ for i = 1:length(subject_ids)
         %mean airflow calc
         %index for if col 2 = labelIdx
         % mean that
-        target_mean = mean(subject_data(labelID, 3));
+        inhalation_vals = airflow_segment(airflow_segment > 0);
+        target_mean = mean(inhalation_vals);
         % very simple
 
         %mean response time
