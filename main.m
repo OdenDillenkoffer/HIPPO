@@ -5,7 +5,7 @@
 
 %making table 
 
-subject_ids = [1:1:3];
+subject_ids = [1,2,3, 5, 6, 9, 10, 11, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24,25,26,27,28,29];
 %only subjects 1-3 but easily expandable
 fs = 1200;
 label = [2,4,6];
@@ -13,6 +13,9 @@ label = [2,4,6];
 
 resultMatrix =[["subj_id", "Label", "mean_airflow", "mean_resp_time", "mean_volume"]];
 %top labels
+
+%Note: Understand each unit, not properly finding units for resp_time for
+%ex, it is in ms so multiply by 10^3
 
 for i = 1:length(subject_ids)
 %iterate through all subjects
@@ -32,7 +35,7 @@ for i = 1:length(subject_ids)
         %mean airflow calc
         %index for if col 2 = labelIdx
         % mean that
-        inhalation_vals = airflow_segment(airflow_segment > 0);
+        inhalation_vals = subject_data(labelID, 3) > 0;
         target_mean = mean(inhalation_vals);
         % very simple
 
@@ -48,6 +51,11 @@ for i = 1:length(subject_ids)
         end
          %mean volume inhaled
 
+
+
+         % Note: This is not what beres wanted
+         % take every spike in airflow, integrate it,
+         % then find the mean of each breath.
          % Column 3 = airflow; only count positive (inhalation)
         airflow_segment = subject_data(labelID, 3);
         inhalation = airflow_segment;
