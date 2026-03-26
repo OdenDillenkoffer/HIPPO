@@ -5,7 +5,8 @@
 
 %making table 
 
-subject_ids = [1,2,3, 5, 6, 9, 10, 11, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24,25,26,27,28,29];
+%subject_ids = [1,2,3, 5, 6, 9, 10, 11, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24,25,26,27,28,29];
+subject_ids = [1,2,3];
 %only subjects 1-3 but easily expandable
 fs = 1200;
 label = [2,4,6];
@@ -60,7 +61,31 @@ for i = 1:length(subject_ids)
         airflow_segment = subject_data(labelID, 3);
         inhalation = airflow_segment;
         inhalation(inhalation < 0) = 0; % only inhalation (positive flow)
-        mean_volume = sum(inhalation) / fs; % in units of [airflow_unit * seconds]
+        
+        
+        spike_areas = [];
+        k = 1;
+    while k <= length(inhalation)
+        if inhalation(k) == 0 && k < length(inhalation) && inhalation(k+1) ~= 0
+        % Find the next zero crossing
+        next_zero = k + 1;
+            while next_zero < length(inhalation) && inhalation(next_zero) ~= 0
+            next_zero = next_zero + 1;
+            end
+
+            % Integrate from k to next_zero (inclusive)
+            spike_areas(end+1) = trapz(inhalation(k:next_zero))/fs;
+            % I don't think this math is right, but it is righter
+
+            % Jump to next zero
+            k = next_zero;
+        else
+            k = k + 1;
+        end
+    end
+
+mean_volume = mean(spike_areas);
+         
 
          %std dev of responses (overall and per label)
         %todo
