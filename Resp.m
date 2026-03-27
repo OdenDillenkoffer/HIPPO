@@ -12,7 +12,8 @@ fs = 1200;
 label = [2,4,6];
 %low medium high 
 
-resultMatrix =[["subj_id", "Label", "mean_airflow", "mean_resp_time", "mean_volume"]];
+resultMatrix =[["subj_id", "Label", "mean_airflow","mean_negairflow", "mean_resp_time", "mean_volume"]];
+respMatrix =[];
 %top labels
 
 %Note: Understand each unit, not properly finding units for resp_time for
@@ -36,13 +37,16 @@ for i = 1:length(subject_ids)
         %mean airflow calc
         %index for if col 2 = labelIdx
         % mean that
-        inhalation_vals = subject_data(labelID, 3) > 0;
-        target_mean = mean(inhalation_vals);
+        neginhalation = smooth(subject_data(labelID, 3)) < 0;
+        inhalation_vals = smooth(subject_data(labelID, 3)) >= 0;
+        target_mean = mean(smooth(inhalation_vals));
+        neg_mean_airflow = mean(neginhalation);
         % very simple
 
         %mean response time
         cueIdx  = find(subject_data(labelID, 29) == 2);
         respIdx = find(subject_data(labelID, 29) == 3);
+        %time for stimulus and buttn press
         
         if length(cueIdx) == length(respIdx) && ~isempty(cueIdx)
             respTimes = (respIdx - cueIdx) / fs;
@@ -61,6 +65,8 @@ for i = 1:length(subject_ids)
         airflow_segment = subject_data(labelID, 3);
         inhalation = airflow_segment;
         inhalation(inhalation < 0) = 0; % only inhalation (positive flow)
+        inhalation = smooth(inhalation);
+        %filter
         
         
         spike_areas = [];
@@ -75,7 +81,11 @@ for i = 1:length(subject_ids)
 
             % Integrate from k to next_zero (inclusive)
             spike_areas(end+1) = trapz(inhalation(k:next_zero))/fs;
-            % I don't think this math is right, but it is righter
+            % this returns a 564L for 1 2, with lungs around ~6L this
+            %makes no sense 
+            %i hope dividing by fs works
+            %returns 0.47 1 2 which makes more sense but I can't understand
+            
 
             % Jump to next zero
             k = next_zero;
@@ -89,8 +99,9 @@ mean_volume = mean(spike_areas);
 
          %std dev of responses (overall and per label)
         %todo
-    newData = [subject_ids(i), label(j), target_mean, mean_resp_time, mean_volume];
+    newData = [subject_ids(i), label(j), target_mean, neg_mean_airflow, mean_resp_time, mean_volume];
     resultMatrix = [resultMatrix; newData];
+    resplMatrix = [respMatrix; newData];
      
     end
 
@@ -103,8 +114,8 @@ end
 
 
 resultMatrix
-
-save('resultsMatrix.mat','resultMatrix')
+respMatrix
+save('realMatrix.mat','realMatrix')
 %2) after make the table, write down what the data actually shows
 %3) make 1 figure (powerpoint slide) of the data or example of  what you think shows points 1 and 2 and explain why this figure is important.
 % For each subject number
