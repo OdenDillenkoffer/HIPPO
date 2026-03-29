@@ -101,7 +101,7 @@ mean_volume = mean(spike_areas);
         %todo
     newData = [subject_ids(i), label(j), target_mean, neg_mean_airflow, mean_resp_time, mean_volume];
     resultMatrix = [resultMatrix; newData];
-    resplMatrix = [respMatrix; newData];
+    respMatrix = [respMatrix; newData];
      
     end
 
