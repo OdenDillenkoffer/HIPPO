@@ -115,7 +115,7 @@ end
 
 resultMatrix
 respMatrix
-save('realMatrix.mat','realMatrix')
+save('respMatrix.mat','respMatrix')
 %2) after make the table, write down what the data actually shows
 %3) make 1 figure (powerpoint slide) of the data or example of  what you think shows points 1 and 2 and explain why this figure is important.
 % For each subject number

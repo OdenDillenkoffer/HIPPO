@@ -10,10 +10,7 @@ NUM_WINDOWS = 3;            % 0-10, 10-20, 20-30
 % possibly expandable
 win_samples = WINDOW_SIZE * fs;
 
-header = {'SubjID', 'Label', ...
-          'Airflow_0_10s',  'RT_0_10s', ...
-          'Airflow_10_20s', 'RT_10_20s', ...
-          'Airflow_20_30s', 'RT_20_30s'};
+header = {'SubjID', 'Label', 'TimeWindow_s', 'Avg_Airflow', 'Avg_RT'};
 
 labelledMatrix = header;   % readable
 numericMatrix  = [];       % computable
@@ -42,8 +39,8 @@ for i = 1:length(subject_ids)
         end
         %check if indices are the same and do exist
 
-        airflow_array = cell(NUM_WINDOWS, 1);
-        response_array = cell(NUM_WINDOWS, 1);
+        win_airflow = cell(NUM_WINDOWS, 1);
+        win_rt = cell(NUM_WINDOWS, 1);
         %hm
         for t = 1:length(abs_cue)
             trial_start = abs_cue(t);
@@ -66,42 +63,37 @@ for i = 1:length(subject_ids)
                 %only positive
  
                
-                if ~isempty(abs_resp) && t <= length(abs_resp)
-                    %if resp is not empty and time is less than length of
-                    %resp
-                    rr = abs_resp(t);
+               if ~isempty(abs_resp) && t <= length(abs_resp)
+                    resp_abs = abs_resp(t);
+            else
+                    resp_abs = NaN;
+             end
                     %sample index for this section
-                    if rr >= ws && rr <= we
-                        %only inside window
-                        win_rt{w+1} = [win_rt{w+1}; (rr - trial_start) / fs];
-                        %turn to seconds and store
+                   if ~isnan(resp_abs) && resp_abs >= ws && resp_abs <= we
+                        rt_sec = (resp_abs - trial_start) / fs;
+                        win_rt{w+1} = [win_rt{w+1}; rt_sec];
                     end
                 end
             end
-        end
+  
  
-        % Collapse accumulators to scalar means
-        row_nums = [currSub, curLabel];
-        % row with subject and label
+        
+       
         for w = 1:NUM_WINDOWS
-            row_nums(end+1) = nanmean(win_airflow{w});
-            %mean for inhalation samples
-            row_nums(end+1) = nanmean(win_rt{w});
-            %mean for response time samples 
-        end
- 
+        window_label = w * WINDOW_SIZE;
+        row_nums = [currSub, curLabel, window_label, nanmean(win_airflow{w}), nanmean(win_rt{w})];
         numericMatrix  = [numericMatrix;  row_nums];
         labelledMatrix = [labelledMatrix; num2cell(row_nums)];
-        %build matrix, loop
-    end
+        end
+end
 end
 
 %NOTE: There is no response time returned for 10-20s and 20-30s idk why
 %maybe this code is broken but I am not sure
 
 disp(labelledMatrix);
-disp(numericMatrix);
+%disp(numericMatrix);
 
 
-save('windowed_rt_airflow.mat', 'labelledMatrix', 'numericMatrix');
+save('windowed_rt_airflow.mat', 'numericMatrix');
 fprintf('Saved to windowed_rt_airflow.mat\n');
