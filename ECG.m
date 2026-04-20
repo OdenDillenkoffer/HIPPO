@@ -24,13 +24,24 @@ numWindows = size(windows, 1);
 %maybe add filters here
 %also load data
 load("subject_1_no_load.mat");
+%initial data in table
 L = array2table(dataM,"VariableNames",dataNames);
+
+
+
+
+%trying to add other loads
+%data is called same things need to differentiate between loads
+%using struct 
+%1 no load, 2 medium load, 3 high load, maybe adding more subjects later 
+subject1(1).fileLoc = "subject_1_no_load.mat";
+
+subject1(2).fileLoc = "subjectTimeSeriesForStudents/subject_1_medium_load.mat";
+
+subject1(3).fileLoc = "subjectTimeSeriesForStudents/subject_1_high_load.mat";
+%filters
 load("highpass.mat");
 load("notch.mat");
-%make this expandable
-
-
-
 
 
 % slop columns
@@ -40,17 +51,28 @@ labCol   = find(strcmp(dataNames, 'Label'));
 taskCol  = find(strcmp(dataNames, 'Task'));
 tCol     = find(strcmp(dataNames, 't'));
 AbdCol     = find(strcmp(dataNames, 'AbdomenRespi'));
+%AbdCol is NaN fucks up filters
 
 skipCols = [snCol, labCol, taskCol, tCol, AbdCol];
 allCols  = 1:size(dataM, 2);
 dataCols = setdiff(allCols, skipCols); % Just the actual signal data
 signalNames = dataNames(dataCols);
 
-%hopefully filters work here
+%new loop for different levels
+dataMAll =[]
+
+for i = 1:3
+ raw = load(subject1(i).fileLoc);
+ dataM = raw.dataM;
+
+ %hopefully filters work here
 %to data hm
 dataM(:, dataCols) = filtfilt(Num, 1, dataM(:, dataCols));
 %now 60Hz filter
 dataM(:, dataCols)  =filtfilt(SOS, G, dataM(:, dataCols));
+end
+
+
 
 % Pull vectors for easy logic handling
 t     = dataM(:, tCol);

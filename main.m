@@ -5,8 +5,11 @@ clc;
 
 run('Resp.m')
 run("timeResp.m")
+run("ECG.m")
+
 
 %goals
 % ECG.m
-% Graphs.m
-%Actually do science and work on the data 
+%graphs
+
+%Note: Lost green notebook with Napoli and Beres notes, we are going in raw
