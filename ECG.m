@@ -44,7 +44,36 @@ load("highpass.mat");
 load("notch.mat");
 
 
-% slop columns
+
+
+
+%So for some reason these files have different sizes and
+%as such I have to make it so that this system can acomadate
+% that (I noticed the typo)
+allSignalNames = {};
+for i = 1:3
+    raw = load(subject1(i).fileLoc);
+    dn = raw.dataNames;
+    sn    = find(strcmp(dn, 'SN'));
+    lb    = find(strcmp(dn, 'Label'));
+    tk    = find(strcmp(dn, 'Task'));
+    tc    = find(strcmp(dn, 't'));
+    ab    = find(strcmp(dn, 'AbdomenRespi'));
+    skip  = [sn, lb, tk, tc, ab];
+    cols  = setdiff(1:length(dn), skip);
+    allSignalNames{i} = dn(cols);
+end
+sharedSignalNames = intersect(intersect(allSignalNames{1}, allSignalNames{2}), allSignalNames{3})
+
+%new loop for different levels
+dataMAll =[];
+outputMAll = [];
+for i = 1:3
+ raw = load(subject1(i).fileLoc);
+ dataM = raw.dataM;
+ dataNames = raw.dataNames;
+
+ % slop columns
 %techinique from claude, hard coding was causing issues
 snCol    = find(strcmp(dataNames, 'SN'));
 labCol   = find(strcmp(dataNames, 'Label'));
@@ -54,25 +83,18 @@ AbdCol     = find(strcmp(dataNames, 'AbdomenRespi'));
 %AbdCol is NaN fucks up filters
 
 skipCols = [snCol, labCol, taskCol, tCol, AbdCol];
-allCols  = 1:size(dataM, 2);
+allCols  = 1:length(dataNames);
 dataCols = setdiff(allCols, skipCols); % Just the actual signal data
 signalNames = dataNames(dataCols);
-
-%new loop for different levels
-dataMAll =[]
-
-for i = 1:3
- raw = load(subject1(i).fileLoc);
- dataM = raw.dataM;
+[~, keepIdx] = intersect(signalNames, sharedSignalNames, 'stable');
+dataCols = dataCols(keepIdx);
+signalNames = dataNames(dataCols);
 
  %hopefully filters work here
 %to data hm
 dataM(:, dataCols) = filtfilt(Num, 1, dataM(:, dataCols));
 %now 60Hz filter
 dataM(:, dataCols)  =filtfilt(SOS, G, dataM(:, dataCols));
-end
-
-
 
 % Pull vectors for easy logic handling
 t     = dataM(:, tCol);
@@ -89,7 +111,8 @@ rowCounter = 1;
 
 %Loop through pairs and windows to calculate means
  numDataCols = length(dataCols);
- outputM = zeros(numPairs * numWindows, 4 + numDataCols);
+ outputM = zeros(numPairs * numWindows, 5 + numDataCols);
+
 for p = 1:numPairs
     for w = 1:numWindows
         % Create masks for the current subject/label and current time slot
@@ -98,7 +121,7 @@ for p = 1:numPairs
         currentTask = dataM(find(pairIdx == p, 1), taskCol);
         
         % Combine masks
-        finalMask = pairMask & timeMask & currentTask;
+        finalMask = pairMask & timeMask; %currentTask is unneeded
 
         %this whole think handles data organization
        
@@ -106,25 +129,37 @@ for p = 1:numPairs
         outputM(rowCounter, 1) = uniquePairs(p, 1); % SubjectID
         outputM(rowCounter, 2) = uniquePairs(p, 2); % Label
         outputM(rowCounter, 3) = w;                 % Window Index
-        outputM(rowCounter, 4) = currentTask;       %Task
+        outputM(rowCounter, 4) = currentTask; %Task
+        outputM(rowCounter, 5) = i; %index
+        
         %Not having task was fucking up the output
         
         
         if any(finalMask)
             
             % Mean of all data columns for this specific window
-            outputM(rowCounter, 5:end) = mean(dataM(finalMask, dataCols), 1, 'omitnan');
+            outputM(rowCounter, 6:end) = mean(dataM(finalMask, dataCols), 1, 'omitnan');
             %meat of this script is just a simple mean and omitting NaN
         end
         
         rowCounter = rowCounter + 1;
     end
 end
+outputMAll = [outputMAll; outputM];
+dataMAll = [dataMAll;dataM(:, dataCols)];
+end
+
+
+
+
+
+
+
 
 % 4. Formatting Output Table
 %all data is in outputM
-finalNames = [{'SubjectID', 'Label', 'Task', 'Window'}, signalNames];
-T = array2table(outputM,"VariableNames",finalNames);
+finalNames = [{'SubjectID', 'Label', 'Window', 'Task', 'LoadIdx'}, signalNames];
+T = array2table(outputMAll,"VariableNames",finalNames);
 
 disp(T)
 
