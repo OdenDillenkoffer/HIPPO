@@ -40,8 +40,10 @@ subject1(2).fileLoc = "subjectTimeSeriesForStudents/subject_1_medium_load.mat";
 
 subject1(3).fileLoc = "subjectTimeSeriesForStudents/subject_1_high_load.mat";
 %filters
-load("highpass.mat");
-load("notch.mat");
+load("Filters/highpass.mat");
+NumHP = Num;  % rename highpass numerator before it gets overwritten
+
+load("Filters\CombIIRforn60.mat");  % now Num and Den belong to the comb IIR
 
 
 
@@ -92,9 +94,9 @@ signalNames = dataNames(dataCols);
 
  %hopefully filters work here
 %to data hm
-dataM(:, dataCols) = filtfilt(Num, 1, dataM(:, dataCols));
+dataM(:, dataCols) = filtfilt(NumHP, 1, dataM(:, dataCols));
 %now 60Hz filter
-dataM(:, dataCols)  =filtfilt(SOS, G, dataM(:, dataCols));
+dataM(:, dataCols)  =filtfilt(Num, Den, dataM(:, dataCols));
 
 % Pull vectors for easy logic handling
 t     = dataM(:, tCol);
@@ -160,6 +162,7 @@ end
 %all data is in outputM
 finalNames = [{'SubjectID', 'Label', 'Window', 'Task', 'LoadIdx'}, signalNames];
 T = array2table(outputMAll,"VariableNames",finalNames);
+T2 = array2table(dataMAll,"VariableNames",signalNames);
 
 disp(T)
 
@@ -183,3 +186,19 @@ ylabel("|P1(f)|")
 figure;
 plot((abs(fft(diff(L.DiaphragmLeft16)))))
 
+
+toSee = L.ScaleneTL - L.ScaleneBL;
+figure 
+plot(zscore(L.Airflow))
+hold on
+plot(zscore(toSee))
+%% 
+Fs = 1200;
+[popen,fopen] = periodogram(toSee,[],[],Fs);
+
+plot(fopen,20*log10(abs(popen)),'--')
+ylabel('Power/frequency (dB/Hz)')
+xlabel('Frequency (Hz)')
+title('Power Spectrum')
+legend('Unfiltered')
+grid
